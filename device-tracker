@@ -45,14 +45,15 @@ start() {
     sleep 1
   done &
   echo $! > /var/run/device-tracker.pid
-  echo "device-tracker started: $(cat /var/run/device-tracker.pid)"
+  echo "device-tracker: started as PID $(cat /var/run/device-tracker.pid)"
 }
 
 stop() {
   if [ -f /var/run/device-tracker.pid ]; then
     kill $(cat /var/run/device-tracker.pid)
     rm /var/run/device-tracker.pid
+    echo "device-tracker: stopped"
   else
-    echo "device-tracker is not running"
+    echo "device-tracker: not running"
   fi
 }
