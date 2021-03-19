@@ -1,0 +1,58 @@
+#!/bin/sh /etc/rc.common
+## OpenWRT MQTT device tracker
+#
+# dependencies:
+#   opkg update
+#   opkg install mosquitto-client
+#
+
+BROKER="mqtt.midgard"
+TOPIC="openwrt/device-tracker"
+
+START=10
+STOP=15
+
+start() {
+  CACHE=""
+  while true; do
+    FIRST=TRUE
+    RESPONSE="{\"online\": ["
+
+    # read all associated mac addresses
+    ip neigh | grep 'REACHABLE\|STALE' > /tmp/device-tracker
+
+    while read line; do
+      # read device data into JSON
+      IP=$(echo $line | cut -d " " -f 1)
+      MAC=$(echo $line | cut -d " " -f 5)
+      NAME=$(grep " $MAC " /var/dhcp.leases | cut -d " " -f 4)
+      JSON="{\"$IP\":{\"name\":\"$NAME\",\"mac\":\"$MAC\"}}"
+
+      # build JSON output
+      if [ "$FIRST" = "TRUE" ]; then FIRST=FALSE; else RESPONSE="${RESPONSE},"; fi
+      RESPONSE="$RESPONSE$JSON"
+    done < /tmp/device-tracker
+
+    # complete JSON string
+    RESPONSE="$RESPONSE]}"
+
+    # publish on MQTT if value has changed
+    if [ "$RESPONSE" != "$CACHE" ]; then
+      CACHE="$RESPONSE"
+      mosquitto_pub --quiet -h $BROKER -d -t "$TOPIC" -m "$RESPONSE" 1> /dev/null
+    fi
+
+    sleep 1
+  done &
+  echo $! > /var/run/device-tracker.pid
+  echo "device-tracker started: $(cat /var/run/device-tracker.pid)"
+}
+
+stop() {
+  if [ -f /var/run/device-tracker.pid ]; then
+    kill $(cat /var/run/device-tracker.pid)
+    rm /var/run/device-tracker.pid
+  else
+    echo "device-tracker is not running"
+  fi
+}
