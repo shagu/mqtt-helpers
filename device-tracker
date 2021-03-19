@@ -19,7 +19,7 @@ start() {
     RESPONSE="{\"online\": ["
 
     # read all associated mac addresses
-    ip neigh | grep 'REACHABLE\|STALE' > /tmp/device-tracker
+    ip neigh | grep 'REACHABLE\|STALE\|DELAY' > /tmp/device-tracker
 
     while read line; do
       # read device data into JSON
