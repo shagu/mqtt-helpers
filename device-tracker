@@ -39,7 +39,7 @@ start() {
     # publish on MQTT if value has changed
     if [ "$RESPONSE" != "$CACHE" ]; then
       CACHE="$RESPONSE"
-      mosquitto_pub --quiet -h $BROKER -d -t "$TOPIC" -m "$RESPONSE" 1> /dev/null
+      mosquitto_pub -r -h $BROKER -d -t "$TOPIC" -m "$RESPONSE" 1> /dev/null
     fi
 
     sleep 1
