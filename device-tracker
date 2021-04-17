@@ -18,9 +18,19 @@ start() {
     FIRST=TRUE
     RESPONSE="{\"online\": ["
 
+    # probe all known ip addresses
+    ip neigh | grep 'REACHABLE\|STALE\|DELAY' > /tmp/device-tracker
+    while read line; do
+      # read device data into JSON
+      IP=$(echo $line | cut -d " " -f 1)
+      ping -w 1 -c 1 $IP &> /dev/null &
+    done < /tmp/device-tracker
+
+    # wait for pings to be completed
+    sleep 2
+
     # read all associated mac addresses
     ip neigh | grep 'REACHABLE\|STALE\|DELAY' > /tmp/device-tracker
-
     while read line; do
       # read device data into JSON
       IP=$(echo $line | cut -d " " -f 1)
@@ -42,7 +52,7 @@ start() {
       mosquitto_pub -r -h $BROKER -d -t "$TOPIC" -m "$RESPONSE" 1> /dev/null
     fi
 
-    sleep 1
+    sleep 3
   done &
   echo $! > /var/run/device-tracker.pid
   echo "device-tracker: started as PID $(cat /var/run/device-tracker.pid)"
